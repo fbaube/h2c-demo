@@ -1,8 +1,8 @@
 ## Demo of HTTP/2 Cleartext (H2C) in golang
 
-This repo is a clone of [this other repo]
-(https://github.com/thrawn01/h2c-golang-example),
-discussed in [this article]
+This repo is a clone of [another repo]
+(https://github.com/thrawn01/h2c-golang-example)
+discussed in this [very helpful article]
 (https://medium.com/@thrawn01/http-2-cleartext-h2c-client-example-in-go-8167c7a4181e).
 
 I had problems getting DIY certs to work with HTTP/2, which mandates HTTPS.
@@ -15,16 +15,16 @@ strickery - to HTTP/2.
 As described [here](https://my.f5.com/manage/s/article/K47440400), h2c has
 two elements:
 
-1) **Upgrade** from HTTP/1.1: When a client does not have prior knowledge
-about server h2c support, it makes a request to an HTTP URI in HTTP/1.1
-and includes an Upgrade header field with the h2c token, for example 
-`Upgrade: h2c`. A server that supports HTTP/2 responds with an HTTP/1.1
-`101` (Switching Protocols) response and _Hey, presto!_ the exchange
-proceeds in HTTP/2.
+1) **Upgrade** from HTTP/1.1: <br/>
+When a client has no prior knowledge about a server's h2c support, it
+makes a request to an HTTP URI in HTTP/1.1 and includes an `Upgrade`
+header field with the h2c token, i.e. `Upgrade: h2c`. A server that
+supports HTTP/2 responds with an HTTP/1.1 `101` (Switching Protocols)
+response and _Hey, presto!_ the exchange proceeds in HTTP/2.
 
-2) **Prior knowledge** that a server supports h2c: The client initiates
-HTTP/2 messages directly after the TCP handshake without an initial
-HTTP/1.1 exchange.
+2) **Prior knowledge** that a server supports h2c: <br/>
+The client initiates HTTP/2 messages directly after the
+TCP handshake without an initial HTTP/1.1 exchange.
 
 Standard golang code supports HTTP2 but does not directly support
 H2C; H2C support lies in package `golang.org/x/net/http2/h2c`.

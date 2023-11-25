@@ -15,12 +15,12 @@ func checkErr(err error, msg string) {
 	if err == nil {
 		return
 	}
-	fmt.Printf("ERROR: %s: %s\n", msg, err)
+	fmt.Printf("Fatal error: %s: %s \n", msg, err)
 	os.Exit(1)
 }
 
 func main() {
-	HttpClientExample()
+	HttpClientExample()  
 	//RoundTripExample()
 }
 
@@ -35,7 +35,8 @@ func RoundTripExample() {
 
 	tr := &http2.Transport{
 		AllowHTTP: true,
-		DialTLSContext: func(ctx context.Context, network, addr string, cfg *tls.Config) (net.Conn, error) {
+		DialTLSContext: func(ctx context.Context, network, 
+				addr string, cfg *tls.Config) (net.Conn, error) {
 			var d net.Dialer
 			return d.DialContext(ctx, network, addr)
 		},
@@ -51,13 +52,13 @@ func HttpClientExample() {
 	client := http.Client{
 		Transport: &http2.Transport{
 			AllowHTTP: true,
-			DialTLSContext: func(ctx context.Context, network, addr string, cfg *tls.Config) (net.Conn, error) {
+			DialTLSContext: func(ctx context.Context, network,
+				addr string, cfg *tls.Config) (net.Conn, error) {
 				var d net.Dialer
 				return d.DialContext(ctx, network, addr)
 			},
 		},
 	}
-
 	resp, err := client.Get(url)
 	checkErr(err, "during get")
 
