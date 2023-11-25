@@ -1,7 +1,7 @@
-module github.com/thrawn01/h2c-golang-example
+module github.com/fbaube/h2c-demo
 
-go 1.21
+go 1.21.4
 
-require golang.org/x/net v0.15.0
+require golang.org/x/net v0.18.0
 
-require golang.org/x/text v0.13.0 // indirect
+require golang.org/x/text v0.14.0 // indirect

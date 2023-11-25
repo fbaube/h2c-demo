@@ -1,13 +1,37 @@
-## HTTP/2 Cleartext (H2C) golang example
+## Demo of HTTP/2 Cleartext (H2C) in golang
 
-Since the internet failed me, and the only workable example of a H2C client I
-can find was in the actual go code test suite I'm going to lay out what I
-discovered about H2C support in golang here.
+This repo is a clone of [this other repo]
+(https://github.com/thrawn01/h2c-golang-example),
+discussed in [this article]
+(https://medium.com/@thrawn01/http-2-cleartext-h2c-client-example-in-go-8167c7a4181e).
 
-First is that the standard golang code supports HTTP2 but does not
-directly support H2C. H2C support only exists in the `golang.org/x/net/http2/h2c`
-package. You can make your HTTP server H2C capable by wrapping your handler or
-mux with `h2c.NewHandler()` like so.
+I had problems getting DIY certs to work with HTTP/2, which mandates HTTPS.
+Well, unless you use h2c (which means "h2, but with cleartext"), in which
+case you connect in cleartext (i.e. HTTP) and it upgrades - via sufficient
+strickery - to HTTP/2.
+
+### Tech Overview
+
+As described [here](https://my.f5.com/manage/s/article/K47440400), h2c has
+two elements:
+
+1) **Upgrade** from HTTP/1.1: When a client does not have prior knowledge
+about server h2c support, it makes a request to an HTTP URI in HTTP/1.1
+and includes an Upgrade header field with the h2c token, for example 
+`Upgrade: h2c`. A server that supports HTTP/2 responds with an HTTP/1.1
+`101` (Switching Protocols) response and _Hey, presto!_ the exchange
+proceeds in HTTP/2.
+
+2) **Prior knowledge** that a server supports h2c: The client initiates
+HTTP/2 messages directly after the TCP handshake without an initial
+HTTP/1.1 exchange.
+
+Standard golang code supports HTTP2 but does not directly support
+H2C; H2C support lies in package `golang.org/x/net/http2/h2c`.
+
+To make your HTTP server H2C-capable (both Upgrade and Prior knowledge),
+in addition to the standard support for HTTP/2 and HTTP/1.1, wrap your
+handler or mux with `h2c.NewHandler()` like so:
 
 ```go
 h2s := &http2.Server{}
@@ -24,13 +48,9 @@ server := &http.Server{
 fmt.Printf("Listening [0.0.0.0:1010]...\n")
 checkErr(server.ListenAndServe(), "while listening")
 ```
-The above code allows the server to support
-[H2C upgrade](https://http2.github.io/http2-spec/#discover-http) and
-[H2C prior knowledge](https://http2.github.io/http2-spec/#known-http) along with
- standard HTTP/2 and HTTP/1.1 that golang natively supports.
 
-If you don't care about supporting HTTP/1.1 then you can run this code which only
-supports H2C prior knowledge.
+If you don't care about supporting **Upgrade** for HTTP/1.1 then
+you can run this code which only supports **Prior knowledge**:
 
 ```go
 server := http2.Server{}
@@ -51,18 +71,22 @@ for {
 }
 ```
 
-Once you have a running server you can test your server by installing `curl-openssl`.
+### Testing your server
+
+Once you have a running server you can test your server by
+installing `curl-openssl`: 
 
 ```
-$ brew install curl-openssl
+$ brew install curl-openssl  # on macos 
 
-# Add curl-openssl to the front of your path
+# Prepend curl-openssl to your path
 $ export PATH="/usr/local/opt/curl-openssl/bin:$PATH"
 ```
 
 You can now use curl to test your H2C enabled server like so.
 
-##### Connect via HTTP1.1 then upgrade to HTTP/2 (H2C)
+<big> Connect via HTTP1.1 (curl: **`--http2`**)
+and then **Upgrade** to HTTP/2 (H2C) </big>
 ```
 curl -v --http2 http://localhost:1010
 *   Trying ::1:1010...
@@ -94,7 +118,8 @@ curl -v --http2 http://localhost:1010
 Hello, /, http: true
 ```
 
-##### Connect via HTTP/2 (H2C)
+<big> Using **Prior knowledge**, connect via HTTP/2
+(curl: **`--http2-prior-knowledge`**) </big>
 ```
 curl -v --http2-prior-knowledge http://localhost:1010
 *   Trying ::1:1010...
@@ -119,20 +144,21 @@ curl -v --http2-prior-knowledge http://localhost:1010
 Hello, /, http: true
 ```
 
-Now, Remember when I said that the golang standard library does not support H2C?
-While that is technically correct there is a workaround to get the golang
-standard http2 client to connect to an H2C enabled server.
+Remember the statement above that the golang standard library does not
+support H2C ? It is technically correct but there is a workaround to get
+the golang standard http2 client to connect to an H2C enabled server.
 
-
-To do so you have to override `DialTLS` and set the super secret `AllowHTTP` flag.
+To do so, override `DialTLS` and set the supersecret flag `AllowHTTP`:
 
 ```go
 client := http.Client{
     Transport: &http2.Transport{
-        // So http2.Transport doesn't complain the URL scheme isn't 'https'
+        // So http2.Transport won't complain that the protocol isn't 'https'
         AllowHTTP: true,
-        // Pretend we are dialing a TLS endpoint. (Note, we ignore the passed tls.Config)
-        DialTLSContext: func(ctx context.Context, network, addr string, cfg *tls.Config) (net.Conn, error) {
+        // Pretend we are dialing a TLS endpoint.
+	// (Note, we ignore the passed tls.Config)
+        DialTLSContext: func(ctx context.Context, network,
+			addr string, cfg *tls.Config) (net.Conn, error) {
             var d net.Dialer
             return d.DialContext(ctx, network, addr)
         },
@@ -143,5 +169,5 @@ resp, _ := client.Get(url)
 fmt.Printf("Client Proto: %d\n", resp.ProtoMajor)
 ```
 
-Although this all looks a little wonky it actually works really well and
-performs nicely in production environments.
+This all looks a bit dodgy but actually works well in production.
+
